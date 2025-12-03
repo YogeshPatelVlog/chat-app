@@ -56,7 +56,8 @@
       const username = usernameField.value.trim();
       if (!username) { alert('Enter username'); return; }
 
-      const socket = new SockJS('http://localhost:8080/ws');
+      const socket = new SockJS(window.location.origin + '/ws');
+
 
 
       stompClient = Stomp.over(socket);
