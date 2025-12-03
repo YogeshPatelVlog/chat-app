@@ -1,14 +1,22 @@
-# Use stable Java 17 image
-FROM eclipse-temurin:17-jdk
+# 1. Build stage
+FROM eclipse-temurin:17-jdk AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy jar file (from target folder)
-COPY target/*.jar app.jar
+# Copy everything
+COPY . .
 
-# Expose application port
+# Build the project
+RUN ./mvnw clean package -DskipTests
+
+# 2. Run stage
+FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+# Copy jar from build stage to runtime stage
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
