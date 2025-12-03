@@ -1,14 +1,14 @@
-# Use Java 17
-FROM openjdk:17-jdk-slim
+# Use stable Java 17 image
+FROM eclipse-temurin:17-jdk
 
 # Set working directory
 WORKDIR /app
 
-# Copy your jar into the image
-COPY target/ChatApplication-0.0.1-SNAPSHOT.jar app.jar
+# Copy jar file (from target folder)
+COPY target/*.jar app.jar
 
-# Expose port (default Spring Boot port)
+# Expose application port
 EXPOSE 8080
 
-# Run the jar
+# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
