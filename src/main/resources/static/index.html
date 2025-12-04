@@ -3,22 +3,18 @@
 <head>
     <meta charset="utf-8" />
     <title>WebSocket Chat</title>
-    <style>
-        body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; }
-        #chat { max-width: 800px; margin: 0 auto; }
-        #messageArea { height: 400px; overflow-y: scroll; border: 1px solid #ddd; padding:10px; }
-        .message { margin-bottom: 8px; }
-        .meta { font-size: 0.9em; color: #555; }
-        .self { font-weight: bold; }
-        #controls { margin-top: 10px; display:flex; gap:8px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="chat">
-    <h2>Live Chat (WebSocket + STOMP)</h2>
 
-    <div>
-        <label>Username: <input type="text" id="username" /></label>
+<div id="chat-container">
+
+    <header>
+        <h2> 🔥Y-Chat Room</h2>
+    </header>
+
+    <div id="user-panel">
+        <input type="text" id="username" placeholder="Enter username..." />
         <button id="connectBtn">Connect</button>
         <button id="disconnectBtn" disabled>Disconnect</button>
     </div>
@@ -26,110 +22,55 @@
     <div id="messageArea"></div>
 
     <div id="controls">
-        <input type="text" id="message" placeholder="Type message..." style="flex:1"/>
+        <input type="text" id="message" placeholder="Write a message..." />
+        <button id="emojiBtn">😊</button>
         <button id="sendBtn" disabled>Send</button>
     </div>
+
+    <!-- Emoji Picker -->
+    <div id="emojiPanel" class="hidden">
+        <span class="emoji">😁</span>
+        <span class="emoji">😂</span>
+        <span class="emoji">🤣</span>
+        <span class="emoji">😊</span>
+        <span class="emoji">😍</span>
+        <span class="emoji">😘</span>
+        <span class="emoji">🤩</span>
+        <span class="emoji">😎</span>
+        <span class="emoji">🥳</span>
+        <span class="emoji">🤔</span>
+        <span class="emoji">😐</span>
+        <span class="emoji">😴</span>
+        <span class="emoji">😡</span>
+        <span class="emoji">🤯</span>
+        <span class="emoji">😱</span>
+        <span class="emoji">😭</span>
+        <span class="emoji">🤤</span>
+        <span class="emoji">😇</span>
+        <span class="emoji">❤️</span>
+        <span class="emoji">💔</span>
+        <span class="emoji">💖</span>
+        <span class="emoji">💙</span>
+        <span class="emoji">💚</span>
+        <span class="emoji">💛</span>
+        <span class="emoji">🧡</span>
+        <span class="emoji">💜</span>
+        <span class="emoji">🖤</span>
+        <span class="emoji">👋</span>
+        <span class="emoji">🤝</span>
+        <span class="emoji">👍</span>
+        <span class="emoji">👎</span>
+        <span class="emoji">🙌</span>
+        <span class="emoji">👏</span>
+        <span class="emoji">🫡</span>
+    </div>
+
 </div>
 
-<!-- SockJS and STOMP -->
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 
-<script>
-    let stompClient = null;
-    const connectBtn = document.getElementById('connectBtn');
-    const disconnectBtn = document.getElementById('disconnectBtn');
-    const sendBtn = document.getElementById('sendBtn');
-    const messageField = document.getElementById('message');
-    const messageArea = document.getElementById('messageArea');
-    const usernameField = document.getElementById('username');
+<script src="script.js"></script>
 
-    function setConnected(connected) {
-      connectBtn.disabled = connected;
-      disconnectBtn.disabled = !connected;
-      sendBtn.disabled = !connected;
-      usernameField.disabled = connected;
-      if (!connected) messageArea.innerHTML = '';
-    }
-
-    function connect() {
-      const username = usernameField.value.trim();
-      if (!username) { alert('Enter username'); return; }
-
-      const socket = new SockJS(window.location.origin + '/ws');
-
-
-
-      stompClient = Stomp.over(socket);
-
-      stompClient.connect({}, function (frame) {
-        setConnected(true);
-        appendSystemMessage('Connected as ' + username);
-        // subscribe to topic
-        stompClient.subscribe('/topic/public', function (messageOutput) {
-          const msg = JSON.parse(messageOutput.body);
-          showMessage(msg);
-        });
-
-        // send join notification
-        stompClient.send("/app/chat.addUser", {}, JSON.stringify({
-          sender: username,
-          type: 'JOIN',
-          content: username + ' joined'
-        }));
-      }, function (err) {
-        appendSystemMessage('Connection error: ' + err);
-      });
-    }
-
-    function disconnect() {
-      if (stompClient !== null) {
-        stompClient.disconnect();
-      }
-      setConnected(false);
-      appendSystemMessage('Disconnected');
-    }
-
-    function sendMessage() {
-      const text = messageField.value.trim();
-      const username = usernameField.value.trim();
-      if (!text || !stompClient) return;
-
-      const chatMessage = {
-        sender: username,
-        content: text,
-        type: 'CHAT'
-      };
-      stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(chatMessage));
-      messageField.value = '';
-    }
-
-    function showMessage(msg) {
-      const el = document.createElement('div');
-      el.classList.add('message');
-      const meta = document.createElement('div');
-      meta.classList.add('meta');
-      meta.textContent = (msg.time ? new Date(msg.time).toLocaleTimeString() + ' - ' : '') + (msg.sender || 'Server');
-      const content = document.createElement('div');
-      content.textContent = msg.content;
-      if (msg.type === 'JOIN' || msg.type === 'LEAVE') {
-        content.style.fontStyle = 'italic';
-        meta.style.color = '#888';
-      }
-      el.appendChild(meta);
-      el.appendChild(content);
-      messageArea.appendChild(el);
-      messageArea.scrollTop = messageArea.scrollHeight;
-    }
-
-    function appendSystemMessage(text) {
-      showMessage({ sender: 'System', content: text, time: new Date().toISOString(), type: 'CHAT' });
-    }
-
-    connectBtn.addEventListener('click', connect);
-    disconnectBtn.addEventListener('click', disconnect);
-    sendBtn.addEventListener('click', sendMessage);
-    messageField.addEventListener('keyup', function(event) { if (event.key === 'Enter') sendMessage(); });
-</script>
 </body>
 </html>
